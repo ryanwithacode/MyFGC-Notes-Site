@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyFGC</title>
+<link rel="stylesheet" href="style.css">
+</head><body>
+<header>
+  <h1>MyFGC</h1>
+  <nav>
+    <button data-view="notes" class="on">Notes</button>
+    <button data-view="chars">Characters</button>
+    <button data-view="matchups">Matchups</button>
+    <button data-view="notation">Notation</button>
+    <button data-view="resources">Resources</button>
+  </nav>
+  <div class="io">
+    <button id="savefile">Choose save file</button>
+    <button id="export">Export JSON</button>
+    <label class="btn">Import JSON<input id="import" type="file" accept="application/json" hidden></label>
+    <button id="gear" aria-label="Settings">⚙</button>
+  </div>
+</header>
+
+<main id="notes">
+  <aside>
+    <div class="row"><button id="new" class="primary">+ Add note</button><button id="nfolder">New folder</button></div>
+    <input id="search" type="search" placeholder="Search title, text, tags">
+    <div class="row"><select id="fgame"></select><select id="fchar"></select></div>
+    <select id="sort" aria-label="Sort notes"><option value="recent">Sort: recent</option><option value="title">Sort: title</option><option value="game">Sort: game</option></select>
+    <div id="tagbar"></div>
+    <div id="list"></div>
+  </aside>
+  <section id="welcome">
+    <h2>Welcome to MyFGC</h2>
+    <p>Notes for the games you play. Start with a note, or make a folder first.</p>
+    <div class="row"><button id="wnew" class="primary">New note</button><button id="wfolder">New folder</button><button id="wsave">Choose save location</button></div>
+    <p class="hint">Notes save in this browser automatically. A save file keeps a JSON copy on your computer too (Chrome and Edge).</p>
+  </section>
+  <section id="editor" hidden>
+    <div class="pane">
+      <div id="banner" class="banner"></div>
+      <input id="title" placeholder="Note title (e.g. Ken combos)">
+      <div class="row"><select id="game"></select><select id="char"></select><select id="folder" aria-label="Folder"></select><button id="delete" class="ghost">Delete</button></div>
+      <input id="tags" placeholder="Tags, separated by commas (e.g. combo, punish, okizeme)">
+      <div id="body" contenteditable="true" spellcheck="true" data-ph="Write notes here. With icons on, combos like df+1,2 or 236P turn into icons when you type a space, comma or Enter. Backspace on an icon to edit its text."></div>
+      <p class="hint"><span id="saved">Saved</span> · Set the game first so buttons match (Tekken uses 1–4, numpad games use L/M/H).</p>
+    </div>
+    <div class="rail">
+      <button id="tIcons" title="Notation icons on/off for this note" aria-label="Toggle notation icons">👊</button>
+      <button id="tPin" title="Pin this note" aria-label="Pin note">★</button>
+    </div>
+  </section>
+</main>
+
+<main id="chars" hidden>
+  <div class="row"><select id="cgame"></select><input id="cnew" placeholder="Add a character"><button id="cadd">Add</button></div>
+  <div id="cgrid"></div>
+</main>
+
+<main id="matchups" hidden>
+  <div class="row"><select id="mgame"></select><select id="mme" aria-label="Your character"></select></div>
+  <p class="hint">Record your wins and losses against each character. Win % is calculated for you.</p>
+  <table id="mtable"></table>
+</main>
+
+<main id="notation" hidden>
+  <div class="row"><select id="ngame" aria-label="Game"></select></div>
+  <div id="nref"></div>
+</main>
+
+<main id="resources" hidden>
+  <div class="row"><select id="rgame" aria-label="Show resources for"></select></div>
+  <p class="hint" id="rhint"></p>
+  <div id="rlist"></div>
+  <details class="addres"><summary>Add your own resource</summary>
+    <div class="row"><input id="rtitle" placeholder="Title"><input id="rurl" placeholder="https://..."></div>
+    <div class="row"><select id="rnewgame" aria-label="Game"></select><select id="rkind" aria-label="Type"></select><input id="rdesc" placeholder="Short note (optional)"><button id="radd">Add</button></div>
+  </details>
+</main>
+
+<dialog id="settings">
+  <h2>Settings</h2>
+  <label><input type="checkbox" id="sIcons"> Convert notation to icons by default</label>
+  <label><input type="checkbox" id="sArrows"> Show arrows for directions (off shows letters like DF)</label>
+  <p class="hint">Each note also has its own icons switch (the fist button beside the note), so you can keep basic notes plain. Your typed text is never changed.</p>
+  <button id="sClose">Done</button>
+</dialog>
+<script src="app.js"></script>
+</body></html>
