@@ -84,3 +84,22 @@ h3{margin:22px 0 8px;color:var(--dim);font-size:.85rem;letter-spacing:.06em;text
 .addres{margin-top:20px}.addres summary{cursor:pointer;color:var(--dim);margin-bottom:8px}
 
 img.ic.flat{height:1.4em}
+
+/* v7: attachments */
+#attach{margin-top:18px}#attach .row input{flex:1;min-width:0}
+#agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin:12px 0}
+.acard{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.acard img,.acard video{display:block;width:100%;max-height:360px;object-fit:contain;background:#000}
+.acard iframe{display:block;width:100%;border:0;aspect-ratio:16/9}.acard.x iframe{aspect-ratio:auto;height:520px}
+.acard figcaption{display:flex;gap:8px;justify-content:space-between;align-items:center;padding:8px 10px;font-size:.85rem;color:var(--dim);overflow-wrap:anywhere}
+.acard a{color:var(--text)}.acard p{padding:12px;margin:0}
+
+/* v8: day mode (night is the default; the page sets data-theme on <html>) */
+.banner{color:#f2f2f2}
+:root[data-theme="light"]{color-scheme:light;--bg:#f4f4f6;--panel:#ffffff;--line:#d3d3da;--text:#17171a;--dim:#5d5d68;--accent:#c28a00}
+:root[data-theme="light"],:root[data-theme="light"] body{background:#f4f4f6;color:#17171a}
+:root[data-theme="light"] .primary{background:#17171a;color:#fff;border-color:#17171a}
+:root[data-theme="light"] #body{background:repeating-linear-gradient(transparent 0 33px,#d6d6dc 33px 34px) local,#ffffff}
+:root[data-theme="light"] .arrow.plain{color:#111;text-shadow:0 0 2px #fff,0 0 2px #fff}
+:root[data-theme="light"] img.ic.flat{filter:invert(1)}
+:root[data-theme="light"] dialog::backdrop{background:#0006}

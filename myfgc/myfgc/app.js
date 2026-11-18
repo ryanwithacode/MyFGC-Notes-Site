@@ -1,14 +1,16 @@
 // ---------- Game data (move to data/games.json and fetch() it once you serve the site) ----------
 const GAMES = {
-  sf6:  {name:"Street Fighter 6", chars:["Ryu","Ken","Chun-Li","Luke","Jamie","Cammy","Guile","Juri"]},
-  t8:   {name:"Tekken 8", chars:["Jin","Kazuya","Reina","Paul","King","Jun","Law","Nina"]},
-  ggst: {name:"Guilty Gear Strive", chars:["Sol","Ky","May","Ramlethal","Nagoriyuki","Chipp"]},
-  xko:  {name:"2XKO", chars:["Ahri","Darius","Ekko","Jinx","Yasuo","Illaoi"]},
+  sf6:  {name:"Street Fighter 6", chars:["Ryu","Ken","Chun-Li","Guile","Blanka","Dhalsim","E. Honda","Zangief","Cammy","Dee Jay","Juri","Luke","Jamie","Kimberly","Manon","Marisa","Lily","JP",
+          "Rashid","A.K.I.","Ed","Akuma","M. Bison","Terry","Mai","Elena","Sagat","C. Viper","Alex","Ingrid","Yasmine","Arjun"]},      // 32; Tifa and Bosch are announced for 2027
+  t8:   {name:"Tekken 8", chars:["Kazuya","Jin","King","Jun","Paul","Law","Jack-8","Lars","Xiaoyu","Nina","Leroy","Asuka","Lili","Bryan","Hwoarang","Claudio","Azucena","Raven","Leo","Steve","Kuma","Yoshimitsu","Shaheen","Dragunov","Feng","Panda","Lee","Alisa","Zafina","Devil Jin","Victor","Reina","Eddy","Lidia","Heihachi","Clive","Anna","Fahkumram","Armor King","Miary Zo","Kunimitsu","Bob","Roger Jr."]},      // 43; Yujiro Hanma is announced for early 2027
+  ggst: {name:"Guilty Gear Strive", chars:["Sol","Ky","May","Axl","Chipp","Potemkin","Faust","Millia","Zato","Ramlethal","Leo","Nagoriyuki","Giovanna","Anji","I-No","Goldlewis","Jack-O'","Happy Chaos","Baiken","Testament","Bridget","Sin","Bedman?","Asuka R#","Johnny","Elphelt","A.B.A","Slayer","Dizzy","Venom","Unika","Lucy","Jam","Robo-Ky"]},      // 34
+  xko:  {name:"2XKO", chars:["Ahri","Akali","Blitzcrank","Braum","Caitlyn","Darius","Ekko","Illaoi","Jinx","Lux","Samira","Senna","Sett","Teemo","Thresh","Vi","Warwick","Yasuo"]},      // 18
   other:{name:"Other game", chars:[]}
 };
 const KEY = "myfgc.v1", $ = s => document.querySelector(s);
 let db = load(), cur = null, F = {q:"", game:"", char:"", tag:""}, fh = null;
-const chars = g => [...GAMES[g].chars, ...(db.custom[g]||[])];
+// Rosters as of Nov 18, 2026. Lists are alphabetized here, and any characters you added yourself are merged in without duplicates.
+const chars = g => [...new Set([...GAMES[g].chars, ...(db.custom[g]||[])])].sort((a,b) => a.localeCompare(b));
 const opts = (arr, first) => (first!==undefined?`<option value="">${first}</option>`:"") + arr.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");
 const gameOpts = first => opts(Object.entries(GAMES).map(([k,g])=>[k,g.name]), first);
 
@@ -16,7 +18,7 @@ const gameOpts = first => opts(Object.entries(GAMES).map(([k,g])=>[k,g.name]), f
 function load(){
   let d; try{ d = JSON.parse(localStorage.getItem(KEY)); }catch{}
   d = d || {}; d.notes ||= []; d.matchups ||= {}; d.custom ||= {}; d.folders ||= []; d.resources ||= []; d.settings ||= {icons:true, arrows:true};
-  d.notes.forEach(n => { n.tags ||= []; n.char ||= ""; n.folder ||= ""; }); return d;
+  d.notes.forEach(n => { n.tags ||= []; n.char ||= ""; n.folder ||= ""; n.files ||= []; n.embeds ||= []; }); return d;
 }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(db)); $("#saved").textContent="Saved"; writeFile(); }catch{ $("#saved").textContent="Storage full: export JSON now"; } }
 $("#export").onclick = () => {
@@ -140,7 +142,7 @@ function ser(el){   // editor DOM -> plain text with the raw notation kept
 }
 
 // ---------- Single-box editor ----------
-const body = $("#body"), curNote = () => db.notes.find(n=>n.id===cur);
+const body = $("#body"), curNote = () => { const n = db.notes.find(x=>x.id===cur); if(n){ n.files ||= []; n.embeds ||= []; } return n; };
 function convertBefore(){         // turn the word before the caret into an icon token
   if(!iconsOn()) return;
   const s = getSelection(); if(!s.rangeCount || !s.isCollapsed) return;
@@ -162,7 +164,8 @@ function unchip(e){               // Backspace on an icon turns it back into edi
 }
 body.addEventListener("keydown", e => { if([" ",",","Enter"].includes(e.key)) convertBefore(); else if(e.key==="Backspace") unchip(e); });
 body.addEventListener("input", edit);
-body.addEventListener("paste", e => { e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text")); body.innerHTML = render(ser(body), $("#game").value, iconsOn()); edit(); });
+body.addEventListener("paste", e => { const imgs = [...(e.clipboardData.files||[])].filter(f => f.type.startsWith("image/")); if(imgs.length){ e.preventDefault(); addFiles(imgs); return; }
+  e.preventDefault(); document.execCommand("insertText", false, e.clipboardData.getData("text")); body.innerHTML = render(ser(body), $("#game").value, iconsOn()); edit(); });
 
 function edit(){
   const n = curNote(); if(!n) return;
@@ -173,14 +176,14 @@ function edit(){
 function showEditor(){
   const n = curNote(); $("#editor").hidden = !n; $("#welcome").hidden = !!n; if(!n) return;
   $("#title").value = n.title; $("#game").value = n.game; fillChars(); $("#char").value = n.char; fillFolders(); $("#folder").value = n.folder;
-  $("#tags").value = n.tags.join(", "); body.innerHTML = render(n.body, n.game, iconsOn()); paint();
+  $("#tags").value = n.tags.join(", "); body.innerHTML = render(n.body, n.game, iconsOn()); paint(); renderAttach();
 }
 const fillChars = () => $("#char").innerHTML = opts(chars($("#game").value).map(c=>[c,c]), "No character");
 $("#game").onchange = () => { const t = ser(body); fillChars(); const n = curNote(); n.game = $("#game").value; n.char = ""; body.innerHTML = render(t, n.game, iconsOn()); edit(); };
 ["#title","#char","#tags"].forEach(s => $(s).addEventListener("input", edit));
-$("#new").onclick = () => { const n = {id:crypto.randomUUID(), title:"", game:F.game||"sf6", char:F.char, body:"", tags:F.tag?[F.tag]:[], updated:Date.now()};
+$("#new").onclick = () => { const n = {id:crypto.randomUUID(), title:"", game:F.game||"sf6", char:F.char, body:"", tags:F.tag?[F.tag]:[], files:[], embeds:[], updated:Date.now()};
   db.notes.push(n); cur = n.id; save(); showEditor(); renderList(); $("#title").focus(); };
-$("#delete").onclick = () => { if(!confirm("Delete this note?")) return; db.notes = db.notes.filter(n=>n.id!==cur); cur=null; save(); showEditor(); renderList(); };
+$("#delete").onclick = () => { if(!confirm("Delete this note?")) return; curNote().files.forEach(f => idbDel(f.id)); db.notes = db.notes.filter(n=>n.id!==cur); cur=null; save(); showEditor(); renderList(); };
 $("#list").onclick = e => { const li = e.target.closest("li"); if(li){ cur = li.dataset.id; showEditor(); renderList(); } };
 
 // ---------- Search + filters (text, game, character, tag) ----------
@@ -195,7 +198,7 @@ function renderList(){
   const hits = db.notes.filter(n => (!F.game||n.game===F.game) && (!F.char||n.char===F.char) && (!F.tag||n.tags.includes(F.tag))
     && (n.title+" "+n.body+" "+n.char+" "+n.tags.join(" ")).toLowerCase().includes(q))
     .sort((a,b) => (+!!b.pin - +!!a.pin) || (by==="title" ? a.title.localeCompare(b.title) : by==="game" ? a.game.localeCompare(b.game) : b.updated-a.updated));
-  const li = n => `<li data-id="${n.id}" class="${n.id===cur?"on":""}">${n.pin?"★ ":""}${esc(n.title||"Untitled")}
+  const li = n => `<li data-id="${n.id}" class="${n.id===cur?"on":""}">${n.pin?"★ ":""}${esc(n.title||"Untitled")}${n.files.length+n.embeds.length ? " 📎"+(n.files.length+n.embeds.length) : ""}
     <small>${GAMES[n.game].name}${n.char?" - "+esc(n.char):""}${n.tags.length?" - #"+n.tags.map(esc).join(" #"):""}</small></li>`;
   const folders = db.folders.map(f => { const m = hits.filter(n=>n.folder===f); return `<details open><summary>${esc(f)} (${m.length})</summary><ul>${m.map(li).join("")}</ul></details>`; }).join("");
   const loose = hits.filter(n => !db.folders.includes(n.folder));
@@ -263,8 +266,8 @@ $("#wnew").onclick = () => $("#new").click();
 $("#sort").onchange = renderList;
 $("#tIcons").onclick = () => { const n = curNote(), t = ser(body); n.icons = !iconsOn(n); body.innerHTML = render(t, n.game, iconsOn(n)); edit(); };
 $("#tPin").onclick = () => { const n = curNote(); n.pin = !n.pin; edit(); };
-$("#gear").onclick = () => { $("#sIcons").checked = db.settings.icons; $("#sArrows").checked = db.settings.arrows; $("#settings").showModal(); };
-$("#sIcons").onchange = $("#sArrows").onchange = () => { db.settings = {icons:$("#sIcons").checked, arrows:$("#sArrows").checked}; save(); showEditor(); };
+$("#gear").onclick = () => { $("#sIcons").checked = db.settings.icons; $("#sArrows").checked = db.settings.arrows; $("#sTheme").value = db.settings.theme || "night"; $("#settings").showModal(); };
+$("#sIcons").onchange = $("#sArrows").onchange = () => { db.settings = {...db.settings, icons:$("#sIcons").checked, arrows:$("#sArrows").checked}; save(); showEditor(); };
 $("#sClose").onclick = () => $("#settings").close();
 async function writeFile(){ if(!fh) return; try{ const w = await fh.createWritable(); await w.write(JSON.stringify(db,null,2)); await w.close(); }catch{} }
 $("#savefile").onclick = $("#wsave").onclick = async () => {
@@ -301,6 +304,11 @@ $("#ngame").innerHTML = gameOpts(); $("#ngame").onchange = renderNotation;
 // ---------- Resources, filtered by game ----------
 // g: a game key, or "all" for tools that work for every game. Edit this list, or add your own in the app.
 const RESOURCES = [
+  {t:"The Fighting Game Glossary", u:"https://glossary.infil.net/", g:"all", k:"Guide", d:"General knowledge: fighting game terms and concepts."},
+  {t:"SuperCombo Wiki", u:"https://wiki.supercombo.gg/", g:"sf6", k:"Wiki", d:"Street Fighter and other Capcom games, plus Avatar, MK, IVS and more."},
+  {t:"Dustloop Wiki", u:"https://www.dustloop.com/w/Main_Page", g:"ggst", k:"Wiki", d:"Anime fighting games: Guilty Gear, Marvel Tokon and more."},
+  {t:"Ewgf Stats", u:"https://ewgf.gg/", g:"t8", k:"Tool", d:"Tekken stats."},
+  {t:"Replay Theatre", u:"https://replaytheater.app/", g:"all", k:"Tool", d:"General knowledge."},
   {t:"Combo Translator (FGC Combo Companion)", u:"https://app.fgc-combo-companion.xyz/combo-translator", g:"all", k:"Tool", d:"Turns typed combo notation into icons. Check which games it supports."},
   {t:"Fighting Game Input Translator", u:"https://ygg-m.github.io/fg-input-translator/", g:"all", k:"Tool", d:"Translates numpad notation into visual inputs."},
   {t:"comboNotes", u:"https://daijoubu-dev.github.io/comboNotes/", g:"sf6", k:"Tool", d:"Combo notation to Street Fighter 6 icons. Other games are planned."},
@@ -309,11 +317,9 @@ const RESOURCES = [
   {t:"ComboForge", u:"https://comboforge.gg/", g:"all", k:"Tool", d:"Combo site from your market study."},
   {t:"ComboLab", u:"https://combolab.app/en", g:"all", k:"Tool", d:"Combo site from your market study."},
   {t:"Matchups.gg", u:"https://matchups.gg/#startLabbing", g:"all", k:"Tool", d:"Matchup site from your market study."},
-  {t:"Zedd's Jinx Guide (2XKO)", u:"https://docs.google.com/document/d/1FL_LZHoBpke9kC3iPK9ehf_E8eXq6iUN1P0ZKE-ifjA/edit?usp=sharing", g:"xko", k:"Guide", d:"Linked from Zedd's Thresh guide."},
-  {t:"Zedd on X", u:"https://x.com/Zedd_FGC", g:"xko", k:"Community", d:"Author of the 2XKO Thresh and Jinx guides."},
-  {t:"2XKO Discord", u:"https://discord.gg/2XKO", g:"xko", k:"Community", d:"Linked from Zedd's Thresh guide."}
+  {t:"2XKO Discord", u:"https://discord.gg/2XKO", g:"xko", k:"Community", d:"2XKO community Discord."}
 ];
-const RKINDS = ["Tool","Guide","Community","Video","Frame data","Other"];
+const RKINDS = ["Tool","Guide","Wiki","Community","Video","Frame data","Other"];
 function renderResources(){
   const g = $("#rgame").value, all = [...RESOURCES, ...db.resources.map((r,i)=>({...r, mine:i}))];
   const hits = all.filter(r => !g || r.g==="all" || r.g===g);
@@ -330,3 +336,84 @@ $("#radd").onclick = () => { const t = $("#rtitle").value.trim(), u = $("#rurl")
   db.resources.push({t, u, g:$("#rnewgame").value, k:$("#rkind").value, d:$("#rdesc").value.trim()});
   save(); ["#rtitle","#rurl","#rdesc"].forEach(i => $(i).value = ""); renderResources(); };
 $("#rlist").onclick = e => { const i = e.target.dataset.del; if(i!==undefined){ db.resources.splice(+i,1); save(); renderResources(); } };
+
+// ---------- Attachments: pictures/videos (stored in IndexedDB) and YouTube / X embeds ----------
+let dbp, attachSeq = 0;
+const idb = () => dbp ||= new Promise((res, rej) => { if(!window.indexedDB) return rej(new Error("no IndexedDB"));
+  const q = indexedDB.open("myfgc-files", 1); q.onupgradeneeded = () => q.result.createObjectStore("files", {keyPath:"id"}); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+const idbTx = async (mode, fn) => { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction("files", mode), q = fn(t.objectStore("files")); t.oncomplete = () => res(q?.result); t.onerror = () => rej(t.error); }); };
+const idbPut = rec => idbTx("readwrite", s => s.put(rec)), idbGet = id => idbTx("readonly", s => s.get(id)), idbDel = id => idbTx("readwrite", s => s.delete(id)).catch(() => {});
+
+async function addFiles(files){
+  const n = curNote(); if(!n) return;
+  for(const f of files){
+    if(!/^(image|video)\//.test(f.type)){ alert(`${f.name}: only pictures and videos can be attached.`); continue; }
+    if(f.size > 200*1024*1024){ alert(`${f.name} is over 200 MB. Embed it from YouTube or X instead.`); continue; }
+    const id = crypto.randomUUID();
+    try{ await idbPut({id, blob:f, name:f.name}); }catch{ alert("This browser couldn't store the file (private browsing or full storage)."); break; }
+    n.files.push({id, name:f.name, type:f.type, size:f.size});
+  }
+  n.updated = Date.now(); save(); renderList(); renderAttach();
+}
+function parseEmbed(raw){          // only YouTube and X/Twitter post links; returns validated ids, never raw URLs
+  let u; try{ u = new URL(raw.trim()); }catch{ return null; }
+  if(!/^https?:$/.test(u.protocol)) return null;
+  const h = u.hostname.replace(/^(www\.|m\.)/, "");
+  if(["youtu.be","youtube.com","youtube-nocookie.com"].includes(h)){
+    const id = h==="youtu.be" ? u.pathname.slice(1).split("/")[0] : (u.searchParams.get("v") || (u.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{11})/)||[])[1]);
+    if(!/^[\w-]{11}$/.test(id||"")) return null;
+    const m = (u.searchParams.get("t") || u.searchParams.get("start") || "").match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/);
+    return {kind:"youtube", id, start: m ? (+m[1]||0)*3600 + (+m[2]||0)*60 + (+m[3]||0) : 0};
+  }
+  if(["x.com","twitter.com","mobile.twitter.com"].includes(h)){ const m = u.pathname.match(/\/status(?:es)?\/(\d{5,25})/); return m ? {kind:"x", id:m[1]} : null; }
+  return null;
+}
+function embedCard(e, i){          // ids are re-checked here, so a hand-edited import file can't inject markup
+  const yt = e.kind==="youtube";
+  if(!(yt ? /^[\w-]{11}$/.test(e.id) : e.kind==="x" && /^\d{5,25}$/.test(e.id))) return "";
+  const start = yt ? Math.max(0, parseInt(e.start)||0) : 0;
+  const src = yt ? `https://www.youtube-nocookie.com/embed/${e.id}${start ? "?start="+start : ""}` : `https://platform.twitter.com/embed/Tweet.html?dnt=true&theme=dark&id=${e.id}`;
+  const link = yt ? `https://www.youtube.com/watch?v=${e.id}${start ? "&t="+start : ""}` : `https://x.com/i/status/${e.id}`;
+  return `<figure class="acard embed ${e.kind}"><iframe src="${src}" title="${yt ? "YouTube video" : "X post"}" loading="lazy" allowfullscreen
+    allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"></iframe>
+    <figcaption><a href="${link}" target="_blank" rel="noopener noreferrer">Open on ${yt ? "YouTube" : "X"}</a><button class="ghost" data-re="${i}">Remove</button></figcaption></figure>`;
+}
+let objUrls = [];
+async function renderAttach(){
+  const n = curNote(), seq = ++attachSeq; if(!n) return;
+  const urls = [], cards = [];
+  for(const f of n.files){
+    const rec = await idbGet(f.id).catch(() => null);
+    if(seq !== attachSeq){ urls.forEach(u => URL.revokeObjectURL(u)); return; }       // the person switched notes meanwhile
+    let media = `<p class="hint">This file isn't in this browser (it was added on another device or cleared).</p>`;
+    if(rec){ const u = URL.createObjectURL(rec.blob); urls.push(u);
+      media = String(f.type).startsWith("video/") ? `<video src="${u}" controls preload="metadata"></video>` : `<img src="${u}" alt="${esc(f.name)}">`; }
+    cards.push(`<figure class="acard">${media}<figcaption><span>${esc(f.name)}</span><button class="ghost" data-rf="${esc(f.id)}">Remove</button></figcaption></figure>`);
+  }
+  n.embeds.forEach((e, i) => cards.push(embedCard(e, i)));
+  objUrls.forEach(u => URL.revokeObjectURL(u)); objUrls = urls;
+  $("#agrid").innerHTML = cards.join("");
+}
+$("#afile").onchange = e => { addFiles([...e.target.files]); e.target.value = ""; };
+$("#tAttach").onclick = () => $("#afile").click();
+$("#attach").ondragover = e => e.preventDefault();
+$("#attach").ondrop = e => { e.preventDefault(); addFiles([...e.dataTransfer.files]); };
+$("#eadd").onclick = () => { const n = curNote(), p = parseEmbed($("#eurl").value);
+  if(!n) return; if(!p) return alert("Paste a link to a YouTube video or an X post (for example https://youtu.be/... or https://x.com/user/status/...).");
+  if(!n.embeds.some(e => e.kind===p.kind && e.id===p.id && (e.start||0)===(p.start||0))) n.embeds.push(p);
+  $("#eurl").value = ""; n.updated = Date.now(); save(); renderList(); renderAttach(); };
+$("#eurl").addEventListener("keydown", e => { if(e.key==="Enter") $("#eadd").click(); });
+$("#agrid").onclick = async e => { const b = e.target.closest("button"), n = curNote(); if(!b || !n) return;
+  if(b.dataset.rf){ if(!confirm("Remove this file from the note?")) return; await idbDel(b.dataset.rf); n.files = n.files.filter(f => f.id !== b.dataset.rf); }
+  else if(b.dataset.re !== undefined) n.embeds.splice(+b.dataset.re, 1);
+  save(); renderList(); renderAttach(); };
+
+// ---------- Day / night mode ----------
+const lightQuery = window.matchMedia ? matchMedia("(prefers-color-scheme: light)") : null;
+function applyTheme(){
+  const t = db.settings.theme || "night";
+  document.documentElement.dataset.theme = (t==="day" || (t==="system" && lightQuery?.matches)) ? "light" : "dark";
+}
+lightQuery?.addEventListener?.("change", applyTheme);
+$("#sTheme").onchange = () => { db.settings.theme = $("#sTheme").value; save(); applyTheme(); };
+applyTheme();

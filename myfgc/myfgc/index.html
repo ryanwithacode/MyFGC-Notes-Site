@@ -4,6 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MyFGC</title>
 <link rel="stylesheet" href="style.css">
+<script>try{var t=((JSON.parse(localStorage.getItem("myfgc.v1"))||{}).settings||{}).theme||"night";document.documentElement.dataset.theme=(t==="day"||(t==="system"&&matchMedia("(prefers-color-scheme: light)").matches))?"light":"dark"}catch(e){}</script>
 </head><body>
 <header>
   <h1>MyFGC</h1>
@@ -44,11 +45,18 @@
       <div class="row"><select id="game"></select><select id="char"></select><select id="folder" aria-label="Folder"></select><button id="delete" class="ghost">Delete</button></div>
       <input id="tags" placeholder="Tags, separated by commas (e.g. combo, punish, okizeme)">
       <div id="body" contenteditable="true" spellcheck="true" data-ph="Write notes here. With icons on, combos like df+1,2 or 236P turn into icons when you type a space, comma or Enter. Backspace on an icon to edit its text."></div>
+      <div id="attach">
+        <div class="row"><label class="btn">📎 Add pictures or videos<input id="afile" type="file" accept="image/*,video/*" multiple hidden></label>
+          <input id="eurl" placeholder="Paste a YouTube or X link to embed"><button id="eadd">Embed</button></div>
+        <div id="agrid"></div>
+        <p class="hint">You can also drop files here or paste an image into the note. Files stay in this browser (Export JSON saves your text and embedded links, not the files). Embeds need an internet connection and the app opened from a web address, such as Live Server or GitHub Pages.</p>
+      </div>
       <p class="hint"><span id="saved">Saved</span> · Set the game first so buttons match (Tekken uses 1–4, numpad games use L/M/H).</p>
     </div>
     <div class="rail">
       <button id="tIcons" title="Notation icons on/off for this note" aria-label="Toggle notation icons">👊</button>
       <button id="tPin" title="Pin this note" aria-label="Pin note">★</button>
+      <button id="tAttach" title="Add a picture or video" aria-label="Add attachment">📎</button>
     </div>
   </section>
 </main>
@@ -81,6 +89,7 @@
 
 <dialog id="settings">
   <h2>Settings</h2>
+  <label>Appearance <select id="sTheme"><option value="night">Night</option><option value="day">Day</option><option value="system">Match my device</option></select></label>
   <label><input type="checkbox" id="sIcons"> Convert notation to icons by default</label>
   <label><input type="checkbox" id="sArrows"> Show arrows for directions (off shows letters like DF)</label>
   <p class="hint">Each note also has its own icons switch (the fist button beside the note), so you can keep basic notes plain. Your typed text is never changed.</p>
