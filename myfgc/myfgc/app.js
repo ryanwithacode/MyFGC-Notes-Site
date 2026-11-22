@@ -245,7 +245,7 @@ $("#mtable").onclick = e => { const a = e.target.dataset.add; if(a){ const d = d
 // ---------- Tabs + startup ----------
 function tab(name){
   document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.view===name));
-  for(const v of ["notes","chars","matchups","notation","resources"]) $("#"+v).hidden = v!==name;
+  for(const v of ["notes","chars","matchups","notation","resources","feedback"]) $("#"+v).hidden = v!==name;
   if(name==="chars") renderChars(); if(name==="matchups") renderMatchups();
   if(name==="notation"){ if(curNote()) $("#ngame").value = curNote().game; renderNotation(); }
   if(name==="resources") renderResources();
